@@ -5,6 +5,11 @@ type Offset struct {
 	Offset int64 `json:"offset"`
 }
 
+type OffsetStorage interface {
+	Save([]Offset) error
+	Load() ([]Offset, error)
+}
+
 func NewOffset(src string, off int64) Offset {
 	return Offset{Source: src, Offset: off}
 }

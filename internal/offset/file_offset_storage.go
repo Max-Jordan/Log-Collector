@@ -2,23 +2,22 @@ package offset
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 )
 
-
-
 type FileOffsetStorage struct {
 	logger *slog.Logger
-	path string
+	path   string
 }
 
 func NewFileOffsetStorage(logger *slog.Logger, path string) (*FileOffsetStorage, error) {
 	fos := &FileOffsetStorage{
 		logger: logger,
-		path: path,
+		path:   path,
 	}
 	err := fos.init()
 	if err != nil {
@@ -35,7 +34,7 @@ func (fos *FileOffsetStorage) init() error {
 		fos.logger.Error("Error of creating dir")
 		return err
 	}
-	
+
 	file, err := os.OpenFile(fos.path, os.O_CREATE, 0655)
 	if err != nil {
 		fos.logger.Error("File open error")
@@ -46,7 +45,7 @@ func (fos *FileOffsetStorage) init() error {
 }
 
 func (fos *FileOffsetStorage) Save(off []Offset) error {
-	file, err := os.OpenFile(fos.path, os.O_RDWR, 0644)
+	file, err := os.OpenFile(fos.path, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		fos.logger.Error("File open error")
 		return err
@@ -57,22 +56,26 @@ func (fos *FileOffsetStorage) Save(off []Offset) error {
 		fos.logger.Error("Marshaling error")
 		return err
 	}
-	file.Write(data)
+	if _, err := file.Write(data); err != nil {
+		return err
+	}
 	return file.Close()
 }
 
 func (fos *FileOffsetStorage) Load() ([]Offset, error) {
 	data, err := os.ReadFile(fos.path)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 	off := []Offset{}
 	err = json.Unmarshal(data, &off)
 	if err != nil {
-		fos.logger.Error("Load offsers error")
+		if errors.Is(err, io.EOF) {
+			return off, nil
+		}
+		fos.logger.Error("Load offsets error")
 		return nil, err
 	}
 	fos.logger.Info("Offsets successfully loaded")
 	return off, nil
 }
-

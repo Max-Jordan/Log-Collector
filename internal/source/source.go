@@ -1,28 +1,13 @@
 package source
 
-type SourceType string
+import ad "github.com/Max-Jordan/Log-Collector/internal/adapter"
 
-const (
-	TypeFile SourceType = "file"
-	TypeDB SourceType = "database"
-	TypeHTTP SourceType = "http"
-)
+type Source = string
 
-type Source struct {
-	Name string
-	Type SourceType
-	Path string
+type SourcesScanner interface {
+	ScanSources()
 }
 
-type Record struct {
-	Source string
-	Data []byte
-}
-
-type Scanner interface {
-	Scan() ([]Source, error)
-}
-
-type Reader interface {
-	Read(src Source, offset int64) ([]Record, int64, error)
+type LogReader interface {
+	ReadLog(src Source, offset int64) ([]ad.LogEntity, int64, error)
 }
